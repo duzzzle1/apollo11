@@ -4177,6 +4177,13 @@ async function submitStudentFlow(){
 
         saveStudentsLocal();
 
+        // tell the online database (see the quiz section) that a new student signed up
+        try{
+            document.dispatchEvent(new CustomEvent("apollo-student-new", { detail:{
+                name:student.name, cls:student.class, registeredAt:student.registeredAt
+            }}));
+        }catch(err){}
+
     }
 
     applyStudentSession(student);
@@ -14577,7 +14584,7 @@ addEventListener("keydown", e => {
 const interestingButton = $("interestingButton");
 const helpButton = $("helpButton");
 function helpLabel(){
-    helpButton.textContent = + L({ar:"التعليمات", en:"Help"});
+    helpButton.textContent = L({ar:"التعليمات", en:"Help"});
 }
 function syncButton(){
     const on = gameSettingsButton.classList.contains("visible");
@@ -17156,7 +17163,7 @@ function rotateText(){
     $id("rotateOk").textContent  = L({ar:"متابعة", en:"Continue"});
 }
 rotateText();
-window.addEventListener("apollo-lang", rotateText);
+document.addEventListener("apollo-lang", rotateText);
 $id("rotateOk").addEventListener("click", () => rn.classList.add("dismissed"));
 window.addEventListener("resize", () => { if(innerWidth > innerHeight) rn.classList.remove("dismissed"); });
 
@@ -17671,7 +17678,7 @@ function refreshUi(){
     tg.addEventListener("click", () => { ensure(); api.set(!st.on); if(st.on) setTimeout(api.tick, 80); });
     vol.addEventListener("input", () => { ensure(); api.volume(vol.value / 100); });
     vol.addEventListener("change", () => { if(st.on) api.tick(); });
-    window.addEventListener("apollo-lang", refreshUi);
+    document.addEventListener("apollo-lang", refreshUi);
     refreshUi();
 })();
 })();
@@ -17683,7 +17690,7 @@ function refreshUi(){
    - Saves online through a tiny Google Apps Script (see leaderboard-backend.gs), which also copies the
      boards into students.json on GitHub (key "quiz"). If the script is unreachable the game reads that copy,
      and it always keeps a copy on this device.
-   - The students list in students.json is never changed by the quiz.
+   - New students (and quiz takers who are not listed yet) are also added to the students list in students.json.
 ========================================================= */
 (function(){
 
@@ -17801,10 +17808,23 @@ async function flushPending(){
     let p = [];
     try{ p = JSON.parse(localStorage.getItem(PENDING_KEY) || "[]"); }catch(_){}
     if(!p.length) return;
-    const left = [];
-    for(const e of p){ try{ await postEntry(e); }catch(_){ left.push(e); } }
-    try{ localStorage.setItem(PENDING_KEY, JSON.stringify(left)); }catch(_){}
+    const sent = new Set();
+    for(const e of p){ try{ await postEntry(e); sent.add(JSON.stringify(e)); }catch(_){} }
+    // re-read: something may have been queued while we were sending
+    try{
+        const now = JSON.parse(localStorage.getItem(PENDING_KEY) || "[]");
+        localStorage.setItem(PENDING_KEY, JSON.stringify(now.filter(e => !sent.has(JSON.stringify(e)))));
+    }catch(_){}
 }
+// a new student signed up: send them to the online database (queued and retried if the network fails)
+document.addEventListener("apollo-student-new", ev => {
+    const s = ev && ev.detail; if(!s || !s.name || !s.cls || !LEADERBOARD_URL) return;
+    let p = [];
+    try{ p = JSON.parse(localStorage.getItem(PENDING_KEY) || "[]"); }catch(_){}
+    p.push({type: "student", name: s.name, cls: s.cls, registeredAt: s.registeredAt});
+    try{ localStorage.setItem(PENDING_KEY, JSON.stringify(p.slice(-200))); }catch(_){}
+    flushPending().catch(() => {});
+});
 async function postEntry(e){
     const r = await fetch(LEADERBOARD_URL, {method: "POST", headers: {"Content-Type": "text/plain;charset=utf-8"}, body: JSON.stringify(e)});
     if(!r.ok) throw new Error("http " + r.status);
@@ -18028,7 +18048,7 @@ window.addEventListener("keydown", e => {
     }
     if(e.code === "Escape" && bp.classList.contains("show")){ e.stopPropagation(); closeBoard(); }
 }, true);
-window.addEventListener("apollo-lang", () => {
+document.addEventListener("apollo-lang", () => {
     if(boardOpen) renderBoard();
     const mb = $q("boardButton"); if(mb) mb.textContent = tx("menuBoard");
     if(run && !run.done && qp.classList.contains("show")){ const el = $q("qbClock"); const keep = el ? el.textContent : ""; renderQuestion(); }
