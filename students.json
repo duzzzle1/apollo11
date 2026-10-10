@@ -1,5 +1,11 @@
 {
-  "students": [],
+  "students": [
+    {
+      "name": "محمد حمد",
+      "class": "3",
+      "registeredAt": "2026-10-10T16:26:27.225Z"
+    }
+  ],
   "quiz": {
     "updated": "2026-10-10T16:14:33.864Z",
     "score": [
