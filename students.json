@@ -1,8 +1,15 @@
 {
   "students": [],
   "quiz": {
-    "updated": "2026-10-10T13:01:54.940Z",
+    "updated": "2026-10-10T13:04:18.418Z",
     "score": [
+      {
+        "name": "MH",
+        "cls": "3",
+        "score": 9,
+        "total": 10,
+        "time": 34.6
+      },
       {
         "name": "MH2",
         "cls": "3",
@@ -12,6 +19,13 @@
       }
     ],
     "time": [
+      {
+        "name": "MH",
+        "cls": "3",
+        "score": 9,
+        "total": 10,
+        "time": 34.6
+      },
       {
         "name": "MH2",
         "cls": "3",
